@@ -4,7 +4,10 @@
 // Author:
 // Modifications:
 #define TIME_STEP 64
-#define MAX_SPEED 6.28
+#define slider_speed 0.05
+#define wheel_speed 1.5
+#define gripper_speed 0.5
+#define arm_speed 0.5
 // You may need to add webots include files such as
 // <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
 // and/or to add some other includes
@@ -42,6 +45,25 @@ int main(int argc, char **argv) {
   Motor *motor_f_l_t = robot->getMotor("motorfl_t");
   Motor *motor_b_r_t = robot->getMotor("motorbr_t");
   
+  Motor *r_gear_motor = robot->getMotor("r_gear_motor");
+  r_gear_motor->setPosition(INFINITY);
+  r_gear_motor->setVelocity(0.0);
+  Motor *l_gear_motor = robot->getMotor("l_gear_motor");
+  l_gear_motor->setPosition(INFINITY);
+  l_gear_motor->setVelocity(0.0);
+  
+  Motor *arm_motor = robot->getMotor("arm_motor");
+  arm_motor->setPosition(INFINITY);
+  arm_motor->setVelocity(0.0);
+  
+  //Motor *gripper_slider = robot->getMotor("gripper_slider");
+  //gripper_slider->setPosition(INFINITY);
+  //gripper_slider->setVelocity(0.0);
+  
+  Motor *arm_slider = robot->getMotor("arm_slider");
+  arm_slider->setPosition(INFINITY);
+  arm_slider->setVelocity(0.0);
+  
   motor_f_r->setPosition(INFINITY);
   motor_f_r->setVelocity(0.0);
   motor_b_l->setPosition(INFINITY);
@@ -59,23 +81,38 @@ int main(int argc, char **argv) {
   motor_f_l_t->setVelocity(0.0);
   motor_b_r_t->setPosition(INFINITY);
   motor_b_r_t->setVelocity(0.0);
+  
+  int k = 23;
   // Main loop:
   // - perform simulation steps until Webots is stopping the controller
   while (robot->step(TIME_STEP) != -1) {
     // Read the sensors:
     // Enter here functions to read sensor data, like:
     //  double val = ds->getValue();
-
+    if (k < 45) {
+      arm_slider->setVelocity(slider_speed);
+      r_gear_motor->setVelocity(gripper_speed);
+      l_gear_motor->setVelocity(gripper_speed);
+      arm_motor->setVelocity(arm_speed);
+    } else {
+      arm_slider->setVelocity(-slider_speed);
+      r_gear_motor->setVelocity(-gripper_speed);
+      l_gear_motor->setVelocity(-gripper_speed);
+      arm_motor->setVelocity(-arm_speed);
+      if (k == 90) {k = 0;}
+    }
+    k = k + 1;
     // Process sensor data here.
-    motor_f_r->setVelocity(MAX_SPEED);
-    motor_b_l->setVelocity(MAX_SPEED);
-    motor_f_l->setVelocity(MAX_SPEED);
-    motor_b_r->setVelocity(MAX_SPEED);
+    motor_f_r->setVelocity(wheel_speed);
+    motor_b_l->setVelocity(wheel_speed);
+    motor_f_l->setVelocity(wheel_speed);
+    motor_b_r->setVelocity(wheel_speed);
     
-    motor_f_r_t->setVelocity(MAX_SPEED);
-    motor_b_l_t->setVelocity(MAX_SPEED);
-    motor_f_l_t->setVelocity(MAX_SPEED);
-    motor_b_r_t->setVelocity(MAX_SPEED);
+    motor_f_r_t->setVelocity(wheel_speed);
+    motor_b_l_t->setVelocity(wheel_speed);
+    motor_f_l_t->setVelocity(wheel_speed);
+    motor_b_r_t->setVelocity(wheel_speed);
+    
     // Enter here functions to send actuator commands, like:
     //  motor->setPosition(10.0);
   };
