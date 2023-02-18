@@ -13,6 +13,7 @@
 // and/or to add some other includes
 #include <webots/Robot.hpp>
 #include <webots/Motor.hpp>
+#include <webots/Camera.hpp>
 
 // All the webots classes are defined in the "webots" namespace
 using namespace webots;
@@ -63,6 +64,9 @@ int main(int argc, char **argv) {
   Motor *arm_slider = robot->getMotor("arm_slider");
   arm_slider->setPosition(INFINITY);
   arm_slider->setVelocity(0.0);
+  
+  Camera *camera = robot->getCamera("camera");
+  camera->enable(TIME_STEP);
   
   motor_f_r->setPosition(INFINITY);
   motor_f_r->setVelocity(0.0);
