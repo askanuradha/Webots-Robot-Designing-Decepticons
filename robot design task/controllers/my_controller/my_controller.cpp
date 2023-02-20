@@ -138,13 +138,24 @@ int main(int argc, char **argv) {
   
   DistanceSensor *ir[9];
   std::string names[9] = {"ir1","ir2","ir3","ir4","ir5","ir6","ir7","ir8","ir9"};
-  double panel[9] = {0,0,0,0,0,0,0,0,0};
+  double ir_panel[9] = {0,0,0,0,0,0,0,0,0};
   int powers[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
-  
   for (int i=0; i<9; i++) {
     ir[i] = robot->getDistanceSensor(names[i]);
     ir[i]->enable(TIME_STEP);
   };
+
+  DistanceSensor *sonar[6];
+  std::string sonar_names[6] = {"sonar_s_r","sonar_s_l","sonar_s_r_b","sonar_s_l_b","sonar_f_r","sonar_f_l"};
+  double sonar_panel[6] = {0,0,0,0,0,0};
+  for (int i=0; i<6; i++) {
+    sonar[i] = robot->getDistanceSensor(sonar_names[i]);
+    sonar[i]->enable(TIME_STEP);
+  };
+
+  //parts of the task
+  bool line_following = 1;
+  bool wall_following = 0;
   
   // Main loop:
   while (robot->step(TIME_STEP) != -1) {
@@ -153,31 +164,67 @@ int main(int argc, char **argv) {
 
     // CODE STARTS HERE!!!
     
-    // reading ir sensors adding 0 and 1 to the panel array
-    for (int i=0; i<9; i++) {
-      double sensor_val = ir[i]->getValue();
-      if (sensor_val > 700) {
-        panel[i] = 0;
+    if (line_following == 1) {
+      // reading ir sensors adding 0 and 1 to the panel array
+      for (int i=0; i<9; i++) {
+        double sensor_val = ir[i]->getValue();
+        if (sensor_val > 700) {
+          ir_panel[i] = 0;
+        } else {
+          ir_panel[i] = 1;
+        }
+      };
+      
+      // conversion binary array to decimal number
+      // MSB - right ir (ir8)
+      int panel_val = 0;
+      for (int i=0; i<9; i++) {
+        panel_val += ir_panel[i]*powers[i];
+      };
+
+      // line folowing algorithm
+      if ((panel_val < 16) & (panel_val != 0)) {
+        turn_left(robot, wheel_speed);
+      } else if ((panel_val > 32) & (panel_val != 511)) {
+        turn_right(robot, wheel_speed);
+      } else if ((panel_val == 511) || (ir_panel[4] == 1)) {
+        forward(robot, wheel_speed);
+      } else if (panel_val == 0) {
+        forward(robot, wheel_speed);
+        wall_following = 1;
       } else {
-        panel[i] = 1;
-      }
-    };
-    
-    // conversion binary array to decimal number
-    // MSB - right ir (ir8)
-    int panel_val = 0;
-    for (int i=0; i<9; i++) {
-      panel_val += panel[i]*powers[i];
+        forward(robot, wheel_speed);
+      };
     };
 
-    // line folowing logic
-    if ((panel_val < 16) & (panel_val != 0)) {
-      turn_left(robot, wheel_speed);
-    } else if ((panel_val > 32) & (panel_val != 511)) {
-      turn_right(robot, wheel_speed);
-    } else if ((panel_val == 511) || (panel[4] == 1)) {
-      forward(robot, wheel_speed);
-    };
+    // wall following part
+    if (wall_following == 1) {
+      // get the ultrasonic readings
+      for (int i=0; i<6; i++) {
+        double sonar_val = sonar[i]->getValue();
+        sonar_panel[i] = round(sonar_val*100)/100;
+      };
+
+      // wall following algorithm
+      if ((sonar_panel[0] > sonar_panel[1]) & (sonar_panel[0] < 1000)) {
+        turn_right(robot, wheel_speed);
+      } else if ((sonar_panel[0] < sonar_panel[1]) & (sonar_panel[1] < 1000)) {
+        turn_left(robot, wheel_speed);
+      } else if ((sonar_panel[0] == sonar_panel[1]) & (sonar_panel[0] < 1000) & (sonar_panel[1] < 1000)) {
+        forward(robot, wheel_speed);
+      } else if ((sonar_panel[0] < 1000) & (sonar_panel[0] > 260)) {
+        turn_right(robot, wheel_speed);
+      } else if ((sonar_panel[0] < 1000) & (sonar_panel[0] < 260)) {
+        turn_left(robot, wheel_speed);
+      } else if ((sonar_panel[1] < 1000) & (sonar_panel[1] > 260)) {
+        turn_left(robot, wheel_speed);
+      } else if ((sonar_panel[1] < 1000) & (sonar_panel[1] < 260)) {
+        turn_right(robot, wheel_speed);
+      } else {
+        forward(robot, wheel_speed);
+      };
+    }
+  
   };
 
   // Enter here exit cleanup code.
