@@ -18,7 +18,7 @@
 #include <webots/PositionSensor.hpp>
 #include <webots/TouchSensor.hpp>
 #include <webots/LightSensor.hpp>
-#include <webots/Gyro.hpp>
+#include <webots/Gyro.hpp> 
 
 using namespace webots;
 
@@ -90,6 +90,50 @@ using namespace webots;
     motor_b_r_t->setVelocity(0);
   }
   
+    void turn_left_sharp(Robot *robot, double speed) {
+    Motor *motor_f_r = robot->getMotor("motorfr");
+    Motor *motor_b_l = robot->getMotor("motorbl");
+    Motor *motor_f_l = robot->getMotor("motorfl");
+    Motor *motor_b_r = robot->getMotor("motorbr");
+  
+    Motor *motor_f_r_t = robot->getMotor("motorfr_t");
+    Motor *motor_b_l_t = robot->getMotor("motorbl_t");
+    Motor *motor_f_l_t = robot->getMotor("motorfl_t");
+    Motor *motor_b_r_t = robot->getMotor("motorbr_t");
+  
+    motor_f_r->setVelocity(speed);
+    motor_b_l->setVelocity(-speed);
+    motor_f_l->setVelocity(-speed);
+    motor_b_r->setVelocity(speed);
+    
+    motor_f_r_t->setVelocity(speed);
+    motor_b_l_t->setVelocity(-speed);
+    motor_f_l_t->setVelocity(-speed);
+    motor_b_r_t->setVelocity(speed);
+  }
+  
+  void turn_right_sharp(Robot *robot, double speed) {
+    Motor *motor_f_r = robot->getMotor("motorfr");
+    Motor *motor_b_l = robot->getMotor("motorbl");
+    Motor *motor_f_l = robot->getMotor("motorfl");
+    Motor *motor_b_r = robot->getMotor("motorbr");
+  
+    Motor *motor_f_r_t = robot->getMotor("motorfr_t");
+    Motor *motor_b_l_t = robot->getMotor("motorbl_t");
+    Motor *motor_f_l_t = robot->getMotor("motorfl_t");
+    Motor *motor_b_r_t = robot->getMotor("motorbr_t");
+  
+    motor_f_r->setVelocity(-speed);
+    motor_b_l->setVelocity(speed);
+    motor_f_l->setVelocity(speed);
+    motor_b_r->setVelocity(-speed);
+    
+    motor_f_r_t->setVelocity(-speed);
+    motor_b_l_t->setVelocity(speed);
+    motor_f_l_t->setVelocity(speed);
+    motor_b_r_t->setVelocity(-speed);
+  }
+  
 int main(int argc, char **argv) {
 
   Robot *robot = new Robot();
@@ -149,6 +193,9 @@ int main(int argc, char **argv) {
   // CAMERA, CAMERA POSITION, CAMERA MOTOR
   Camera *camera = robot->getCamera("camera");
   camera->enable(TIME_STEP);
+  camera->recognitionEnable(TIME_STEP);
+  
+  
   Motor *cam_motor = robot->getMotor("cam_motor");
   PositionSensor *cam_position = robot->getPositionSensor("cam_position");
   cam_position->enable(TIME_STEP);
@@ -172,15 +219,16 @@ int main(int argc, char **argv) {
   color_r->enable(TIME_STEP);
 
   // ULTRASONIC SENSORS
-  DistanceSensor *sonar[7];
-  std::string sonar_names[7] = {"sonar_s_r","sonar_s_l","sonar_s_r_b","sonar_s_l_b","sonar_f_r","sonar_f_l","sonar_f"};
-  double sonar_panel[7] = {0,0,0,0,0,0,0};
-  for (int i=0; i<7; i++) {
+  DistanceSensor *sonar[9];
+  std::string sonar_names[9] = {"sonar_s_r","sonar_s_l","sonar_s_r_b","sonar_s_l_b","sonar_f_r","sonar_f_l","sonar_f","king_sonar","king_lower_sonar"};
+  double sonar_panel[9] = {0,0,0,0,0,0,0,0,0};
+  for (int i=0; i<9; i++) {
     sonar[i] = robot->getDistanceSensor(sonar_names[i]);
     sonar[i]->enable(TIME_STEP);
   };
   Gyro *gyro = robot->getGyro("gyro");
   gyro->enable(TIME_STEP);
+  
 
   //parts of the task
   bool line_following = 0;
@@ -191,6 +239,9 @@ int main(int argc, char **argv) {
   bool object_grabbed = 0;
   bool turn_one_time = 0;
   bool box_picked_and_turned = 0;
+  bool turn_finished = 0;
+  bool camera_turned = 0;
+  bool robot_positioned = 0;
   
   // variables for loops
   int time = 1;
@@ -215,6 +266,7 @@ int main(int argc, char **argv) {
       
       // getting forward ultrasonic value for calculate the distance to the box
       double sonar_val_f = sonar[6]->getValue();
+      std::cout<<sonar_val_f<<std::endl;
       
       if ((object_grabbed == 0) & (sonar_val_f > 224)) {
         forward(robot, wheel_speed);
@@ -227,45 +279,74 @@ int main(int argc, char **argv) {
         l_gear_motor->setVelocity(1);
       };
       // lifting the object when touch sensor values detected
-      if ((touch_val_r == 1) & (touch_val_l == 1)) {
+      if ((touch_val_r == 1) & (touch_val_l == 1) & (turn_finished == 0) {
         forward(robot, 0);
         object_grabbed = 1;
         r_gear_motor->setVelocity(0.1);
         l_gear_motor->setVelocity(0.1);
-        if (arm_position < 0) {
+        if (arm_position < 0.5) {
           arm_motor->setVelocity(0.5);
         } else {
           // after box lifted
           arm_motor->setVelocity(0);
           double ir_5_val = ir[5]->getValue();
-          if ((ir_5_val > 400) & (box_picked_and_turned == 0)) {
+          if ((ir_5_val > 400) & (box_picked_and_turned == 0) & (sonar_val_f > 350)) {
             forward(robot,wheel_speed);
-          } else {
+          } else { // when there is a chess piece infront of the box
             if (currentAngle > -24) {
-              turn_right(robot, 1);
+              turn_right_sharp(robot, 1);
               currentAngle = gyro->getValues()[1]*time;
               time += 1;
-              std::cout<<currentAngle<<std::endl;
               box_picked_and_turned = 1; 
             } else {
-              double cam_pos_val = cam_position->getValue();
-              if ((object_grabbed == 1) & (cam_pos_val < 1.57)) {
-                cam_motor->setVelocity(1);
-              } else {
-                cam_motor->setVelocity(0.0);
-              }
-              forward(robot,wheel_speed);
-            };
+              turn_finished = 1;
+            }
           }
         };
       };
-     };
-    
-    
-    // rotating the camera by 90 degrees to detect white king
-    
-    
-    
+    };
+    if (turn_finished == 1) {
+      // rotating the camera by 90 degrees to detect white king
+      // after robot turned
+      double cam_pos_val = cam_position->getValue();
+      if ((object_grabbed == 1) & (cam_pos_val < 1.54)) {
+        cam_motor->setVelocity(1);
+      } else {
+        cam_motor->setVelocity(0.0);
+        camera_turned = 1;
+      }
+      double king_sonar_val = sonar[7]->getValue();
+      if ((sonar_val_f > 350) & (king_sonar_val > 1000) & (camera_turned == 1)) {
+        forward(robot, wheel_speed);
+      } else if (king_sonar_val < 1000) { // king detected
+        forward(robot, 0);
+        for (int i=0; i<5; i++) { // wait some time after breaking
+          robot->step(1);
+        }
+        
+        // robot going backward for drop the box
+        double ir_5_val = ir[5]->getValue();
+        if ((ir_5_val < 400) & (robot_positioned == 0)) {
+          forward(robot, -wheel_speed);
+        } else {
+          robot_positioned = 1;
+        }
+        if ((ir_5_val > 400) & (robot_positioned == 0)) {
+          forward(robot, -wheel_speed);
+        } else {
+          robot_positioned = 1;
+        }
+        
+        //when robot get positioned
+        if (robot_positioned == 1) {
+          if (arm_position > -0.45) {
+            arm_motor->setVelocity(-0.1);
+          } else {
+            arm_motor->setVelocity(0);
+          };
+        }
+      }
+    }  
     
     
     
