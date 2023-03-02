@@ -133,6 +133,7 @@ using namespace webots;
     motor_f_l_t->setVelocity(speed);
     motor_b_r_t->setVelocity(-speed);
   }
+ 
   
 int main(int argc, char **argv) {
 
@@ -165,7 +166,8 @@ int main(int argc, char **argv) {
   motor_b_r_t->setPosition(INFINITY);
   motor_b_r_t->setVelocity(0.0);
   
-  
+  PositionSensor *wheel_sensor = robot->getPositionSensor("wheel_sensor");
+  wheel_sensor->enable(TIME_STEP);
   //MOTORS OF ARM
   Motor *r_gear_motor = robot->getMotor("r_gear_motor");
   r_gear_motor->setPosition(INFINITY);
@@ -236,29 +238,38 @@ int main(int argc, char **argv) {
   bool chess_arena = 1;
   
   // switches for some stages
+  bool arm_positioned = 0;
   bool object_grabbed = 0;
   bool turn_one_time = 0;
   bool box_picked_and_turned = 0;
   bool turn_finished = 0;
   bool camera_turned = 0;
+  bool king_detected = 0;
   bool robot_positioned = 0;
+  bool black_square = 0;
+  bool detected = 0;
+  bool box_dropped = 0;
+  bool red_carpet_detected = 0;
   
   // variables for loops
   int time = 1;
+  int gripper_time = 1;
   double currentAngle = 0.0;
   
   // Main loop:
   while (robot->step(TIME_STEP) != -1) {
   
     if (chess_arena) {
-      
-      // getting the arm right position when starting it
       double arm_position = arm_sensor->getValue();
-      if (arm_position > -0.45) {
-        arm_motor->setVelocity(-0.1);
-      } else {
-        arm_motor->setVelocity(0);
-      };
+      // getting the arm right position when starting it
+      if (arm_positioned == 0) {
+        if (arm_position > -0.45) {
+          arm_motor->setVelocity(-1);
+        } else {
+          arm_motor->setVelocity(0);
+          arm_positioned = 1;
+        };
+      }
       
       // getting touch sensor values
       double touch_val_r = touch_sensor_r->getValue();
@@ -266,7 +277,6 @@ int main(int argc, char **argv) {
       
       // getting forward ultrasonic value for calculate the distance to the box
       double sonar_val_f = sonar[6]->getValue();
-      std::cout<<sonar_val_f<<std::endl;
       
       if ((object_grabbed == 0) & (sonar_val_f > 224)) {
         forward(robot, wheel_speed);
@@ -279,7 +289,7 @@ int main(int argc, char **argv) {
         l_gear_motor->setVelocity(1);
       };
       // lifting the object when touch sensor values detected
-      if ((touch_val_r == 1) & (touch_val_l == 1) & (turn_finished == 0) {
+      if ((touch_val_r == 1) & (touch_val_l == 1) & (turn_finished == 0)) {
         forward(robot, 0);
         object_grabbed = 1;
         r_gear_motor->setVelocity(0.1);
@@ -308,6 +318,8 @@ int main(int argc, char **argv) {
     if (turn_finished == 1) {
       // rotating the camera by 90 degrees to detect white king
       // after robot turned
+      double ir_5_val = ir[5]->getValue();
+      std::cout<<ir_5_val<<std::endl;
       double cam_pos_val = cam_position->getValue();
       if ((object_grabbed == 1) & (cam_pos_val < 1.54)) {
         cam_motor->setVelocity(1);
@@ -315,40 +327,81 @@ int main(int argc, char **argv) {
         cam_motor->setVelocity(0.0);
         camera_turned = 1;
       }
+      
+      // sensor reading
       double king_sonar_val = sonar[7]->getValue();
-      if ((sonar_val_f > 350) & (king_sonar_val > 1000) & (camera_turned == 1)) {
+      double sonar_val_f = sonar[6]->getValue();
+      double king_lower_sonar_val = sonar[8]->getValue();
+      double difference_sonar = king_lower_sonar_val-king_sonar_val;
+
+      
+      
+      // going forward
+      if ((sonar_val_f > 300) & (king_sonar_val == 1000) & (camera_turned == 1)) {
         forward(robot, wheel_speed);
-      } else if (king_sonar_val < 1000) { // king detected
+        arm_motor->setVelocity(0);
+      // king detected
+      } else if ((king_sonar_val < 1000) && (((-100 < difference_sonar) & (difference_sonar < 0)) || ((0 < difference_sonar) & (difference_sonar < 100)))) {
         forward(robot, 0);
-        for (int i=0; i<5; i++) { // wait some time after breaking
-          robot->step(1);
+        king_detected = 1;
+      } else if ((800 < ir_5_val) & (king_detected == 0)) {
+        red_carpet_detected = 1;
+        forward(robot,0);
+      }
+      
+      
+      if (red_carpet_detected == 1) {
+        double wheel_sensor_val = wheel_sensor->getValue();
+        std::cout<<wheel_sensor_val<<std::endl;
+        forward(robot, -wheel_speed);
+      }
+      
+      if (king_detected == 1) {
+        // detecting square color
+        if ((ir_5_val < 400) & (detected = 0)) {
+          black_square = 0;
+        } else {
+          black_square = 1;
         }
+        detected = 1;
         
         // robot going backward for drop the box
-        double ir_5_val = ir[5]->getValue();
-        if ((ir_5_val < 400) & (robot_positioned == 0)) {
-          forward(robot, -wheel_speed);
+        if (black_square == 0) {
+          if ((ir_5_val < 400) & (robot_positioned == 0)) {
+            forward(robot, -wheel_speed);
+          } else {
+            robot_positioned = 1;
+          }
         } else {
-          robot_positioned = 1;
-        }
-        if ((ir_5_val > 400) & (robot_positioned == 0)) {
-          forward(robot, -wheel_speed);
-        } else {
-          robot_positioned = 1;
+          if ((ir_5_val > 400) & (robot_positioned == 0)) {
+            forward(robot, -wheel_speed);
+          } else {
+            robot_positioned = 1;
+          }
         }
         
         //when robot get positioned
         if (robot_positioned == 1) {
+          
+          forward(robot, 0);
+          double arm_position = arm_sensor->getValue();
           if (arm_position > -0.45) {
             arm_motor->setVelocity(-0.1);
-          } else {
+          } else { // when box dropped we need to reset the motor speeds and positions
             arm_motor->setVelocity(0);
+            if (gripper_time < 5) {
+              l_gear_motor->setVelocity(-3);
+              r_gear_motor->setVelocity(-3);
+              gripper_time += 1;
+            } else {
+              l_gear_motor->setVelocity(0);
+              r_gear_motor->setVelocity(0);
+            }
+            box_dropped = 1;
           };
         }
-      }
-    }  
-    
-    
+       }
+    }
     
     //arm_slider->setVelocity(0.1);
 
