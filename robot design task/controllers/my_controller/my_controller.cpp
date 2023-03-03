@@ -205,11 +205,11 @@ int main(int argc, char **argv) {
   cam_motor->setVelocity(0.0);
   
   // IR SENSOR ARRAY
-  DistanceSensor *ir[9];
-  std::string names[9] = {"ir1","ir2","ir3","ir4","ir5","ir6","ir7","ir8","ir9"};
+  DistanceSensor *ir[10];
+  std::string names[10] = {"ir1","ir2","ir3","ir4","ir5","ir6","ir7","ir8","ir9","king_ir"};
   double ir_panel[9] = {0,0,0,0,0,0,0,0,0};
   int powers[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
-  for (int i=0; i<9; i++) {
+  for (int i=0; i<10; i++) {
     ir[i] = robot->getDistanceSensor(names[i]);
     ir[i]->enable(TIME_STEP);
   };
@@ -249,12 +249,20 @@ int main(int argc, char **argv) {
   bool detected = 0;
   bool box_dropped = 0;
   bool red_carpet_detected = 0;
+  bool initial_positioned = 0;
+  bool turn_left_red = 0;
+  bool left_side_free = 0;
+  bool turn_right_first = 0;
+  bool wall_found = 0;
+  bool turn_right_2 = 0;
+  bool wall_found_2 = 0;
   
   // variables for loops
   int time = 1;
   int gripper_time = 1;
   double currentAngle = 0.0;
   int red_time = 1;
+  double wheel_start_position = 0;
   
   // Main loop:
   while (robot->step(TIME_STEP) != -1) {
@@ -302,28 +310,35 @@ int main(int argc, char **argv) {
             // after box lifted
             arm_motor->setVelocity(0);
             double ir_5_val = ir[5]->getValue();
-            if ((ir_5_val > 400) & (box_picked_and_turned == 0) & (sonar_val_f > 350)) {
+            std::cout<<ir_5_val<<std::endl;
+            if (((ir_5_val > 700) || (ir_5_val < 550)) & (box_picked_and_turned == 0) & (sonar_val_f > 350)) {
               forward(robot,wheel_speed);
             } else { // when there is a chess piece infront of the box
-              if (currentAngle > -23.9) {
+              box_dropped = 1;
+              red_carpet_detected = 1;
+              box_picked_and_turned = 1;
+              /*if (currentAngle > -23.9) {
                 turn_right_sharp(robot, 1);
                 currentAngle = gyro->getValues()[1]*time;
                 time += 1;
                 box_picked_and_turned = 1; 
               } else {
                 turn_finished = 1;
-              }
+                currentAngle = 0.0;
+                time = 1;
+                wheel_start_position = wheel_sensor->getValue();
+              }*/
             }
           };
         };
       };
     
       
-      if (turn_finished == 1) {
+      /*if (turn_finished == 1) {
         // rotating the camera by 90 degrees to detect white king
         // after robot turned
         double ir_5_val = ir[5]->getValue();
-        std::cout<<ir_5_val<<std::endl;
+        //std::cout<<ir_5_val<<std::endl;
         double cam_pos_val = cam_position->getValue();
         if ((object_grabbed == 1) & (cam_pos_val < 1.55)) {
           cam_motor->setVelocity(0.5);
@@ -336,8 +351,10 @@ int main(int argc, char **argv) {
         double king_sonar_val = sonar[7]->getValue();
         double sonar_val_f = sonar[6]->getValue();
         double king_lower_sonar_val = sonar[8]->getValue();
+        double king_ir_val = ir[9]->getValue();
         double difference_sonar = king_lower_sonar_val-king_sonar_val;
-  
+        std::cout<<"ir "<<king_ir_val<<std::endl;
+        std::cout<<"ul "<<king_sonar_val<<std::endl;
         
         
         // going forward
@@ -345,21 +362,56 @@ int main(int argc, char **argv) {
         if ((800 < ir_5_val) && (king_detected == 0)) {
           red_carpet_detected = 1;
           forward(robot,0);
-        } else if (((sonar_val_f > 300) && (king_sonar_val == 1000)) && ((camera_turned == 1) && (red_carpet_detected == 0))) {
+        } else if (((sonar_val_f > 300) && (king_sonar_val == 1000)) && ((camera_turned == 1))) {
           forward(robot, wheel_speed);
           arm_motor->setVelocity(0);
+        } else if (sonar_val_f < 301) {
+          forward(robot, 0);
+          red_carpet_detected = 1; // actually not red carpet detected but there is a chess piece infront of robot
+       
         // king detected
         } else if ((king_sonar_val < 1000) && (((-100 < difference_sonar) & (difference_sonar < 0)) || ((0 < difference_sonar) & (difference_sonar < 100)))) {
-          forward(robot, 0);
-          king_detected = 1;
+            std::cout<<king_ir_val<<std::endl;
+            
+            if ((king_sonar_val < 95) & (king_ir_val < 115)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else if ((king_sonar_val < 220) & (king_ir_val < 290)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else if ((king_sonar_val < 360) & (king_ir_val < 480)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else if ((king_sonar_val < 486) & (king_ir_val < 657)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else if ((king_sonar_val < 610) & (king_ir_val < 830)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else if ((king_sonar_val < 736) & (king_ir_val < 980)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else if ((king_sonar_val < 856) & (king_ir_val < 1000)) {
+              forward(robot, 0);
+              king_detected = 1;
+            } else {
+              forward(robot, wheel_speed);
+            }
+          
+          
         }
         
         
         if (red_carpet_detected == 1) {
           double wheel_sensor_val = wheel_sensor->getValue();
-          if (red_time < 480) {
+          //if (red_time < 480) {
+          //  forward(robot, -wheel_speed);
+          //  red_time += 1;
+         // } else {
+         //   forward(robot,0);
+          //}
+          if (wheel_sensor_val < wheel_start_position+14) {
             forward(robot, -wheel_speed);
-            red_time += 1;
           } else {
             forward(robot,0);
           }
@@ -375,7 +427,6 @@ int main(int argc, char **argv) {
             }
           }
           detected = 1;
-          std::cout<<black_square<<std::endl;
           
           // robot going backward for drop the box
           if (black_square == 0) {
@@ -383,14 +434,12 @@ int main(int argc, char **argv) {
               forward(robot, -wheel_speed);
             } else {
               robot_positioned = 1;
-              std::cout<<"jdgcjajca"<<std::endl;
             }
           } else {
             if ((ir_5_val > 450) & (robot_positioned == 0)) {
               forward(robot, -wheel_speed);
             } else {
               robot_positioned = 1;
-              std::cout<<"asasasasa"<<std::endl;
             }
           }
           
@@ -415,6 +464,76 @@ int main(int argc, char **argv) {
             };
           }
          }
+      }*/
+      
+      // after box dropped
+      if (box_dropped == 1) {
+        // sensor reading
+        double king_sonar_val = sonar[7]->getValue();
+        double sonar_val_f = sonar[6]->getValue();
+        double king_lower_sonar_val = sonar[8]->getValue();
+            std::cout<<sonar_val_f<<std::endl;
+        if (red_carpet_detected == 1) { // if red carpet detected then first row does not have the king
+          if ((king_lower_sonar_val > 300) & (left_side_free == 0)) {
+            left_side_free = 1;
+          }
+          // Assume robot initial positioned and lower ir turn left relative to the robot
+          if (left_side_free == 1) { // there is no chess piece
+            if (turn_left_red == 0) {
+              if (currentAngle < 23.9) {
+                turn_left_sharp(robot, 1);
+                currentAngle = gyro->getValues()[1]*time;
+                time += 1; 
+              } else {
+                turn_left_red = 1;
+                currentAngle = 0.0;
+                time = 1;
+              }
+            }
+            if (turn_left_red == 1) {
+              if ((sonar_val_f < 300) & (wall_found == 0)) {
+                wall_found = 1;
+              }
+              if (wall_found == 1) {
+                if (turn_right_first == 0) {
+                  if (currentAngle > -23.9) {
+                    turn_right_sharp(robot, 1);
+                    currentAngle = gyro->getValues()[1]*time;
+                    time += 1; 
+                  } else {
+                    turn_right_first = 1;
+                    currentAngle = 0.0;
+                    time = 1;
+                    forward(robot, wheel_speed);
+                    std::cout<<"dhbabdca0"<<std::endl;
+                  }
+                }
+                
+                if ((sonar_val_f < 300) & (wall_found_2 == 0)) {
+                  wall_found_2 = 1;
+                }
+                if (wall_found_2 == 1) {
+                  if (turn_right_2 == 0) {
+                    if (currentAngle > -23.9) {
+                      turn_right_sharp(robot, 1);
+                      currentAngle = gyro->getValues()[1]*time;
+                      time += 1; 
+                    } else {
+                      turn_right_2 = 1;
+                      currentAngle = 0.0;
+                      time = 1;
+                      forward(robot, wheel_speed);
+                    }
+                  } else if (turn_right_2 == 1) {
+                    forward(robot, wheel_speed);
+                  }
+                }
+              } else {
+                forward(robot, wheel_speed);
+              }
+            }
+          }
+        }
       }
     }  
     //arm_slider->setVelocity(0.1);
