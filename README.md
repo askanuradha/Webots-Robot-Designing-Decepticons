@@ -1,4 +1,5 @@
 # Team Decepticons Robotics Simulation Task
+<div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/webot.png" alt="Robot" width="500"></div>
 ## Overview
 This project is related to the EN2532-Robot design and Competition Module. This project implements the webot robot with c++ controler file to accomplish the task given. Here is the task and how we implement that,
 ## Project Components
@@ -18,4 +19,4 @@ The project includes a challenging chessboard scenario where the robot employs i
 In the final phase of the project, the robot is tasked with exploring a secret chamber. It must locate and pick up two boxes from within the chamber and transport them to the outside.
 ## Example World of the Robot
 In the context of our robot competition, we have been provided with an example world that serves as the environment in which our robot will operate. This example world is representative of the competition's challenges and scenarios.
-<div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/robot_world.png" alt="Robot World" width="350" height="350"></div>
+<div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/robot_world.png" alt="Robot World" width="400" height="400"></div>
