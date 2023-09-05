@@ -38,8 +38,10 @@ In the context of our robot competition, we have been provided with an example w
 
 <div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/robot_world.png" alt="Robot World" width="400" height="400"></div>
 
+## Robot Implementation
 We have successfully implemented a Webots robot using the C++ programming language. The robot is equipped with a diverse range of sensors, including ultrasonic sensors, infrared (IR) sensors, and color sensors. In addition, it features DC motors for wheel control, as well as various actuation components such as arm-mounted stepper motors, sliders, and servo motors. The integration of these sensors and actuators has been configured through C++ programming. As a result of this  configuration, the robot exhibits smooth and precise functionality.
 
-<div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/Robot_wide_view.png" alt="Robot in Robot World" width="600"></div>
+<div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/Robot_wide view.png" alt="Robot in Robot World" width="600"></div>
 
+## Conclusion
 The Webots Robot Project serves as a testament to the fusion of robotics, and simulation technologies. It showcases a robot's ability to perform a variety of tasks, from basic line following to complex chessboard manipulation and chamber exploration. This project highlights the synergy of mechanical design, sensor integration, and autonomous control, ultimately demonstrating the versatility and capabilities of modern robotics in diverse scenarios.
