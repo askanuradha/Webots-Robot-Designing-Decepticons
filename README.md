@@ -4,7 +4,7 @@
 
 ## Overview
 
-This project is related to the EN2532-Robot design and Competition Module. This project implements the webot robot with c++ controler file to accomplish the task given. Here is the task and how we implement that,
+This project is related to the EN2532-Robot design and Competition Module. This project implements the webot robot with C++ controler file to accomplish the task given. Here is the task and how we implement that,
 
 ## Project Components
 
