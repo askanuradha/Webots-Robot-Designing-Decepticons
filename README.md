@@ -1,5 +1,5 @@
 # Team Decepticons Robotics Simulation Task
-<div align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/webot.png" alt="Robot" width="500"></div>
+<p align="center"><img src="https://github.com/askanuradha/Webots-Robot-Designing-Decepticons/blob/main/webot.png" alt="Robot" width="500"></p>
 ## Overview
 This project is related to the EN2532-Robot design and Competition Module. This project implements the webot robot with c++ controler file to accomplish the task given. Here is the task and how we implement that,
 ## Project Components
